@@ -1,36 +1,7 @@
 import streamlit as st
 import pandas as pd
-import datacompy
-import io
-from typing import Tuple, List
-
-def load_file(uploaded_file) -> pd.DataFrame:
-    """Load CSV or Excel file into a pandas DataFrame."""
-    if uploaded_file.name.endswith('.csv'):
-        return pd.read_csv(uploaded_file)
-    elif uploaded_file.name.endswith(('.xls', '.xlsx')):
-        return pd.read_excel(uploaded_file)
-    else:
-        raise ValueError("Unsupported file format. Please upload CSV or Excel files only.")
-
-def create_synthetic_key(df: pd.DataFrame, columns: List[str]) -> pd.DataFrame:
-    """Create a synthetic key by concatenating multiple columns."""
-    df = df.copy()
-    df['synthetic_key'] = df[columns].astype(str).agg('_'.join, axis=1)
-    return df
-
-def compare_dataframes(df1: pd.DataFrame, df2: pd.DataFrame, 
-                      compare_cols: List[str], join_columns: List[str]) -> Tuple[str, float]:
-    """Compare two dataframes using datacompy and return the comparison report."""
-    comparison = datacompy.Compare(
-        df1,
-        df2,
-        join_columns=join_columns,
-        df1_name='Dataset 1',
-        df2_name='Dataset 2'
-    )
-    
-    return comparison.report(), comparison.match_score
+from typing import List
+from .utils import load_file, create_synthetic_key, compare_dataframes
 
 def main():
     st.title("Dataset Comparison Tool")
@@ -44,6 +15,10 @@ def main():
         try:
             df1 = load_file(file1)
             df2 = load_file(file2)
+            
+            # Get file names without extension for labeling
+            df1_name = file1.name.rsplit('.', 1)[0]
+            df2_name = file2.name.rsplit('.', 1)[0]
 
             # Get common columns between the two datasets
             common_columns = list(set(df1.columns) & set(df2.columns))
@@ -68,7 +43,8 @@ def main():
 
                 if st.button("Compare Datasets"):
                     report, match_score = compare_dataframes(
-                        df1, df2, selected_columns, join_columns
+                        df1, df2, selected_columns, join_columns,
+                        df1_name=df1_name, df2_name=df2_name
                     )
 
                     # Display match score
